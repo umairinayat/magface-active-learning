@@ -22,6 +22,10 @@ Active learning system for face recognition using MagFace with user feedback and
 
 ## 🚀 Quick Start
 
+**✅ Your Current Scripts Are Better:**
+
+Use these **corrected scripts** with proper preprocessing and cosine similarity:
+
 ```bash
 # 1. Activate environment
 conda activate magface
@@ -30,10 +34,20 @@ conda activate magface
 python create_test_feedback.py --dataset faces_webface_112x112
 
 # 3. Run inference and visualize errors
-python visualize_errors.py --model magface_epoch_00025.pth --feedback_file test_feedback/feedback_pairs_test.json --threshold 0.4 --force_cpu --output_dir magface_errors
+python visualize_errors.py \
+    --model magface_epoch_00025.pth \
+    --feedback_file test_feedback/feedback_pairs_test.json \
+    --threshold 0.4 \
+    --force_cpu \
+    --output_dir magface_errors
 
 # 4. Fine-tune on feedback
-python finetune_on_feedback.py --checkpoint magface_epoch_00025.pth --feedback_file test_feedback/feedback_pairs_test.json --epochs 10 --batch_size 16 --force_cpu
+python finetune_on_feedback.py \
+    --checkpoint magface_epoch_00025.pth \
+    --feedback_file test_feedback/feedback_pairs_test.json \
+    --epochs 10 \
+    --batch_size 16 \
+    --force_cpu
 
 
 ---
