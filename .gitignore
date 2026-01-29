@@ -1,0 +1,143 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+magface-env/
+facelib-env/
+
+# PyTorch
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+
+# Checkpoints and Models
+checkpoints/
+checkpoints_feedback/
+models/
+*.pth
+*.pt
+
+# Datasets
+faces_webface_112x112/
+CASIA-WebFace/
+test_feedback/images/
+*.rec
+*.idx
+*.bin
+
+# Test and Feedback Data
+test_feedback/
+feedback_pairs_test.json
+ground_truth.json
+
+# Error Visualizations
+error_visualization/
+error_visualization_pretrained/
+error_visualization_pretrained_CORRECT/
+pretrained_FIXED/
+finetuned_FIXED/
+pretrained_clean/
+finetuned_clean/
+pretrained_groundtruth/
+finetuned_groundtruth/
+pretrained_CORRECT/
+finetuned_CORRECT/
+magface_errors_final/
+
+# Logs and Results
+*.log
+logs/
+results/
+outputs/
+runs/
+wandb/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# OS
+Thumbs.db
+desktop.ini
+*.bak
+
+# MXNet
+*.rec
+*.idx
+*.lst
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Large files
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# MagFace specific
+MagFace_repo/
+mag_umair/
+__MACOSX/
+
+# Testing artifacts
+TESTING/
+test_output/
+*.png
+*.jpg
+*.jpeg
+comparison.png
+info.txt
+
+# Environment files
+.env
+.env.local
+
+# Cache
+.cache/
+*.cache
+
+# Qdrant
+qdrant_storage/
+.qdrant/
+
+test_feedback/
