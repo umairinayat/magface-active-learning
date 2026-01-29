@@ -1,0 +1,44 @@
+model:
+  backend: "magface"
+  
+  # InsightFace settings (when backend=insightface)
+  pack: buffalo_l
+  device: cpu
+  allowed_modules: null
+  
+  # MagFace settings (when backend=magface)
+  magface:
+    weights: "models/magface_epoch_00025.pth"
+    arch: "iresnet100"  # iresnet100, iresnet50, or iresnet18
+    embedding_size: 512
+
+detection:
+  det_size: [640, 640]
+  det_thresh: 0.5
+  nms_thresh: 0.4
+  max_num: 0
+
+recognition:
+  select_largest: false
+
+matching:
+  similarity_threshold: 0.4
+
+index:
+  url: "http://localhost:6333"
+  api_key: null
+  collection_name: "face_embeddings"
+
+paths:
+  index_dir: data/index
+  gallery_dir: data/gallery
+  output_dir: data/output
+
+filter:
+  enabled: true
+  min_det_score: 0.5
+  min_face_size: 16
+  min_quality_score: 22.0  # MagFace magnitude (typical range: 20-36, good quality: >24)
+  anime_classifier:
+    enabled: true
+    threshold: 0.6 

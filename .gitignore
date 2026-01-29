@@ -71,7 +71,6 @@ finetuned_groundtruth/
 pretrained_CORRECT/
 finetuned_CORRECT/
 magface_errors_final/
-evaluation_plots/
 
 # Logs and Results
 *.log
@@ -116,8 +115,7 @@ temp/
 *.7z
 
 # MagFace specific
-MagFace_repo/
-mag_umair/
+
 __MACOSX/
 
 # Testing artifacts

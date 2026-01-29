@@ -1,0 +1,99 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "facelib"
+version = "1.2.0"
+description = "Face recognition library with filtering, indexing, and matching capabilities"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+    {name = "Amir"}
+]
+keywords = ["face-recognition", "face-detection", "embeddings", "qdrant"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Image Recognition",
+]
+
+# All dependencies - MagFace only 
+dependencies = [
+    "numpy>=1.20.0",
+    "Pillow>=9.0.0",
+    "opencv-python>=4.5.0",
+    "pyyaml>=5.4.0",
+    "qdrant-client>=1.7.0",
+    # MagFace pipeline dependencies
+    "torch>=2.0.0",
+    "torchvision>=0.15.0",
+    "tensorflow>=2.10.0",
+    "tf-keras>=2.10.0",
+    "retina-face>=0.0.17",
+    "scikit-image>=0.19.0",
+    # Anime classifier dependencies
+    "dghs-imgutils>=0.15.0",
+    "pilmoji @ https://files.pythonhosted.org/packages/47/7c/b7139e422e460889077d34b8e668b7b61af19e303b7a66adc736313fb71a/pilmoji-2.0.4-py3-none-any.whl",
+]
+
+[project.optional-dependencies]
+# GPU support - replaces CPU versions with GPU versions
+gpu = [
+    "onnxruntime-gpu>=1.14.0",
+]
+# Development dependencies
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/iammuhammadamir/facial_matching_dan"
+Repository = "https://github.com/iammuhammadamir/facial_matching_dan"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+packages = [
+    "facelib",
+    "src",
+    "src.alignment",
+    "src.detection",
+    "src.embedding",
+    "src.matching",
+    "src.filter",
+    "repos",
+    "repos.MagFace",
+    "repos.MagFace.models"
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.yml", "*.pkl"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+markers = [
+    "integration: marks tests as integration tests (deselect with '-m \"not integration\"')",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I"]
+ignore = ["E501"]

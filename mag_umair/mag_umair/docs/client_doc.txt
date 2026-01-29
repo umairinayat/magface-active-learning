@@ -1,0 +1,186 @@
+
+
+Face Recognition System - Phase 2 Project Estimation
+Project Overview
+Transform the proof-of-concept face recognition system into a production-ready library
+with intelligent filtering, automatic clustering, feedback collection, and model fine-tuning
+capabilities. The system will process up to 2 million face images, running on CPU
+infrastructure with optional GPU acceleration.
+Phase 2A. Robust Filtering System
+1.1 Quality Metrics Integration
+Filtering on the basis of embedding norm (ambiguous facial features)
+● Extract embedding norm from InsightFace output
+● Calibrate threshold based on test data
+Face Resolution Filter
+● Minimum bbox size check (e.g., 50x50 pixels)
+● Face area ratio relative to image size
+Detection Confidence Filter
+● Threshold on InsightFace det_score (e.g., >= 0.5)
+● Confidence-based quality scoring
+1.2 Cartoon/Animation Detection
+tanuj208 Classifier Integration
+● Integrate open-source cartoon vs. real classifier
+● KPCA + MLP model (no GPU required)
+● Filter out: anime, cartoons, 2D illustrations
+Why this model? Research shows tanuj208 achieves 95%+ accuracy with perfect
+precision on real faces, using only 80-dimensional feature space. Lightweight and
+CPU-friendly.
+1.3 Unified Filter API
+Single Entry Point
+For Example:
+Python
+result = filter_image(image_path)
+# Returns: {
+# "is_valid": True/False,
+# "rejection_reason": "cartoon" | "no_face" | "low_quality" | None,
+# "scores": {
+# "det_score": 0.95,
+# "embedding_norm": 22.5,
+# "face_size": [120, 150],
+# "is_cartoon": False
+# }
+# }
+1.4 Testing & Integration
+● Test on diverse image samples (good/bad quality, edge cases)
+● Calibrate thresholds on client's actual data distribution
+● Validate filter accuracy and false positive/negative rates
+Estimated Duration: 4 days
+Phase 2B. Core Library Development
+Objective: Package the system as a clean, importable Python library with
+comprehensive API.
+2.1 Module Structure & Refactoring
+● Reorganize codebase into proper packages and modules structure
+● Separate concerns: filtering, indexing, searching, clustering
+● Remove demo-specific code from core library
+2.2 Core API Implementation ( there might be changes as we move forward )
+Constructor:
+● FaceRecognitionLibrary(config_path, index_dir, model_name)
+Indexing Methods:
+● index_image(path, image_id, metadata) - Add single image
+● index_directory(path, recursive, on_progress) - Bulk indexing
+● index_batch(paths, on_progress) - Batch from list
+Search Methods:
+● search(image_path, top_k, threshold) - Find matches
+● search_embedding(vector, top_k, threshold) - Search with embedding
+● compare(image1, image2) - Direct 1:1 comparison
+Utility Methods:
+● get_embedding(image_path) - Extract without indexing
+● save() / load() / clear() / remove() - Index CRUD operations
+2.3 Error Handling & Exceptions
+● Custom exception classes (NoFaceDetectedError, ImageLoadError, etc.)
+● Informative error messages for debugging
+2.4 Configuration Management
+● Support for config file
+● Threshold configuration for filters
+● Model selection and device configuration
+● Index persistence settings
+2.5 Documentation
+● API reference documentation
+● Integration guide for client team
+2.6 End-to-End Testing
+● Test after integrating the facial filtering system
+● Edge case testing (no faces, multiple faces, corrupted images)
+● Filter accuracy validation
+● Index persistence testing
+Estimated Duration: 6 days
+Phase 2B: Clustering & ID Assignment
+3. Unsupervised Embedding Clustering
+Objective: Group 2 million faces into person clusters with stable IDs.
+3.1 Clustering Algorithm Decision-Making
+● Select optimal approach for CPU-based clustering
+● Consider trade-off regarding algorithms for 2M scale: HDBSCAN, Chinese
+Whispers, Hierarchical
+● Memory and performance profiling (to prevent out-of-memory errors)
+● Accuracy vs. speed tradeoff hyper-parameter tuning
+Why this matters: At 2M faces with 512-dim embeddings = ~4GB of vectors. Need O(n
+log n) or better algorithm.
+3.2 Core Clustering Implementation
+● Implement chosen clustering algorithm
+● Handle 2M embeddings efficiently (batch processing, memory management)
+● Distance metric optimization (cosine similarity on normalized embeddings)
+● Cluster quality metrics (silhouette score, cluster cohesion)
+3.3 Cluster ID Management
+● Stable ID assignment to clusters
+● Mapping between face IDs and cluster IDs
+● Persistence of cluster assignments
+● Cluster metadata storage (size, representative face, confidence)
+3.4 Incremental Clustering Feature
+Challenge: Add new faces without full re-clustering of 2M faces.
+● Assign new faces to existing clusters
+● Detect when new person appears (no close cluster)
+● Threshold tuning for cluster membership
+● Periodic re-clustering strategy for drift correction
+3.5 Cluster Management Backend
+● Merge clusters (same person, initially split)
+● Split clusters (different people, incorrectly merged)
+3.6 Scale Testing
+● Generate or use 2M synthetic embeddings
+● Performance benchmarking (time, memory)
+● Accuracy validation on known ground truth
+● Optimization and tuning
+Estimated Duration: 8 days
+Phase 2C: Learning Loop
+4. Data Collection Feature
+Objective: Capture user feedback for model improvement.
+4.1 Feedback Database Schema
+● Design schema for feedback storage
+● Fields: query_id, result_id, vote (thumbs up/down), timestamp
+● Efficient indexing for retrieval
+● Database selection (SQLite for simplicity, PostgreSQL for production)
+4.2 Feedback API Endpoint
+● POST /api/feedback endpoint
+● Store query embedding, result embedding, images metadata & vote
+4.3 Frontend Integration
+● Add thumbs up/down buttons to search results
+● Visual feedback on vote submission
+● Simple, non-intrusive UI
+4.4 Feedback Export & Analysis
+● Export feedback to training format (triplets, pairs)
+● Negative pair mining from thumbs-down votes
+● Data quality checks and filtering
+Estimated Duration: 2 days
+5. Training Pipeline
+Objective: Fine-tune model using collected feedback.
+5.1 Docs Review
+● Review InsightFace training scripts and requirements
+● Identify fine-tuning vs. full training tradeoffs
+Why this matters: ArcFace uses specialized loss with margin and scale parameters.
+Improper fine-tuning can backfire and worsen performance.
+5.2 ONNX to PyTorch Conversion
+● Load ONNX weights into PyTorch model
+● Verify weight mapping correctness
+● Set up training-compatible model structure
+● Freeze/unfreeze layer strategy for fine-tuning
+5.3 Training Data Preparation
+● Mine hard negative pairs from collected data
+● Balance positive and negative samples
+● Data augmentation strategy
+● Train/validation split
+5.4 Training Script Implementation
+● Set up optimizer (SGD with momentum or Adam)
+● Configure Training Hyper-Parameters (i.e. lr_schedule)
+● Checkpoint saving and resumption
+● Logging and monitoring (loss curves, accuracy)
+5.5 Evaluation & Validation
+● Compare against baseline model
+● Ensure no degradation on general face recognition
+5.6 Model Export to ONNX
+● Convert fine-tuned PyTorch model back to ONNX
+● Verify inference correctness
+● Compatibility testing with InsightFace API
+5.7 Library Integration
+● Hot-swap model mechanism
+● Model version management
+● Rollback capability
+● Configuration for model selection
+Estimated Duration: 10 days
+Summary: Time Estimation
+Phase Component Days
+2A Robust Filtering System 4
+2A Library Creation 6
+2B Clustering & ID Assignment 8
+2C Data Collection Feature 2
+2C Training Pipeline 10
+Total 30 days
+Cost BreakDown:
+Budget @ $20 / Hour = 4800 + ( Optional 10% ) = ~5.2K USD
