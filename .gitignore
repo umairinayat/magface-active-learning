@@ -71,6 +71,7 @@ finetuned_groundtruth/
 pretrained_CORRECT/
 finetuned_CORRECT/
 magface_errors_final/
+evaluation_plots/
 
 # Logs and Results
 *.log
