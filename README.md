@@ -23,73 +23,8 @@ Active learning system for face recognition using MagFace with user feedback and
 ## 🚀 Quick Start (Megaface Workflow, GPU)
 
 Use these commands to run MagFace inference, build hard pairs, visualize errors, and fine-tune:
-
 ```bash
-# 1) Activate environment
-conda activate magface
-
-# 2) 150k random Megaface images -> embeddings
-shuf -n 150000 megaface/data/megaface_abs.list > megaface/data/megaface_150k.list
-mkdir -p megaface/feature_out_150k
-PYTHONPATH=MagFace_repo CUDA_VISIBLE_DEVICES=0 python MagFace_repo/inference/gen_feat.py \
-  --arch iresnet100 \
-  --inf_list megaface/data/megaface_150k.list \
-  --feat_list megaface/feature_out_150k/features.list \
-  --resume magface_epoch_00025.pth \
-  --batch_size 128 \
-  --workers 8
-
-# 3) Create hard pairs from FaceScrub embeddings (example: 12k total)
-# Update pos_target / neg_target for different sizes
-python - <<'PY'
-import json, random, numpy as np
-from collections import defaultdict
-random.seed(42); np.random.seed(42)
-features_file = 'megaface/feature_out/facescrub_features.list'
-out_path = 'megaface/pairs_data/hard_pairs_12k.json'
-pos_target, neg_target, candidate_mult = 6000, 6000, 6
-paths, embs = [], []
-with open(features_file, 'r') as f:
-    for line in f:
-        parts = line.strip().split()
-        if len(parts) < 513:
-            continue
-        paths.append(parts[0])
-        embs.append(np.array(list(map(float, parts[1:])), dtype=np.float32))
-embs = np.vstack(embs)
-embs /= (np.linalg.norm(embs, axis=1, keepdims=True) + 1e-12)
-id_to_idxs = defaultdict(list)
-for idx, p in enumerate(paths):
-    identity = p.split('/')[-2]
-    id_to_idxs[identity].append(idx)
-ids = [i for i, idxs in id_to_idxs.items() if len(idxs) >= 2]
-pos_candidates, neg_candidates = [], []
-pos_needed, neg_needed = pos_target * candidate_mult, neg_target * candidate_mult
-while len(pos_candidates) < pos_needed:
-    identity = random.choice(ids)
-    i, j = random.sample(id_to_idxs[identity], 2)
-    sim = float(np.dot(embs[i], embs[j]))
-    pos_candidates.append((sim, i, j))
-all_indices = list(range(len(paths)))
-while len(neg_candidates) < neg_needed:
-    i, j = random.sample(all_indices, 2)
-    if paths[i].split('/')[-2] == paths[j].split('/')[-2]:
-        continue
-    sim = float(np.dot(embs[i], embs[j]))
-    neg_candidates.append((sim, i, j))
-pos_candidates.sort(key=lambda x: x[0])
-neg_candidates.sort(key=lambda x: x[0], reverse=True)
-pairs = []
-for _, i, j in pos_candidates[:pos_target]:
-    pairs.append({'image1': paths[i], 'image2': paths[j], 'label': 1})
-for _, i, j in neg_candidates[:neg_target]:
-    pairs.append({'image1': paths[i], 'image2': paths[j], 'label': 0})
-random.shuffle(pairs)
-with open(out_path, 'w') as f:
-    json.dump({'pairs': pairs}, f, indent=2)
-print('Saved', out_path, 'total:', len(pairs))
-PY
-
+# 1) Run inference on Megaface + FaceScrub to get embeddings
 # 4) Visualize errors (fast: uses cached embeddings)
 CUDA_VISIBLE_DEVICES=0 python visualize_errors.py \
   --model magface_epoch_00025.pth \
