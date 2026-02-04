@@ -73,43 +73,49 @@ class FeedbackPairDataset(Dataset):
         return img1, img2, label
 
 
-class ContrastiveLoss(nn.Module):
+class CosineSimilarityLoss(nn.Module):
     """
-    Contrastive Loss for pair-based learning.
+    Cosine Similarity Loss for pair-based learning.
     
-    - Positive pairs: Minimize distance
-    - Negative pairs: Maximize distance (up to margin)
+    - Positive pairs: Maximize similarity (push towards 1)
+    - Negative pairs: Minimize similarity (push towards 0 or below margin)
+    
+    Uses cosine similarity with threshold 0.4 for consistency.
     """
     
-    def __init__(self, margin=1.0):
-        super(ContrastiveLoss, self).__init__()
-        self.margin = margin
+    def __init__(self, margin=0.4):
+        super(CosineSimilarityLoss, self).__init__()
+        self.margin = margin  # Similarity threshold
     
     def forward(self, emb1, emb2, label):
         """
         Args:
-            emb1: Embeddings from image1 (batch_size, 512)
-            emb2: Embeddings from image2 (batch_size, 512)
+            emb1: Embeddings from image1 (batch_size, 512) - should be normalized
+            emb2: Embeddings from image2 (batch_size, 512) - should be normalized
             label: 1 (same person) or 0 (different person)
         
         Returns:
-            loss: Contrastive loss
+            loss: Cosine similarity based contrastive loss
         """
-        # Euclidean distance
-        distance = torch.nn.functional.pairwise_distance(emb1, emb2)
+        # Cosine similarity (for normalized embeddings, this is just dot product)
+        similarity = torch.sum(emb1 * emb2, dim=1)
         
-        # Contrastive loss
-        # Same person: minimize distance
-        # Different person: maximize distance (up to margin)
-        loss_positive = label * torch.pow(distance, 2)
-        loss_negative = (1 - label) * torch.pow(torch.clamp(self.margin - distance, min=0.0), 2)
+        # Contrastive loss using cosine similarity
+        # Same person (label=1): Maximize similarity -> minimize (1 - similarity)
+        # Different person (label=0): Minimize similarity -> minimize max(0, similarity - margin)
+        loss_positive = label * torch.pow(1 - similarity, 2)
+        loss_negative = (1 - label) * torch.pow(torch.clamp(similarity - self.margin, min=0.0), 2)
         
         loss = torch.mean(loss_positive + loss_negative)
         
         return loss
 
 
-def train_epoch(model, dataloader, criterion, optimizer, device):
+# Alias for backward compatibility
+ContrastiveLoss = CosineSimilarityLoss
+
+
+def train_epoch(model, dataloader, criterion, optimizer, device, threshold):
     """Train for one epoch."""
     model.train()
     
@@ -124,16 +130,16 @@ def train_epoch(model, dataloader, criterion, optimizer, device):
         img2 = img2.to(device)
         label = label.to(device)
         
-        # Extract embeddings
+        # Extract embeddings (train mode)
         emb1 = model(img1)
         emb2 = model(img2)
         
         # Normalize embeddings
-        emb1 = nn.functional.normalize(emb1, p=2, dim=1)
-        emb2 = nn.functional.normalize(emb2, p=2, dim=1)
+        emb1_norm = nn.functional.normalize(emb1, p=2, dim=1)
+        emb2_norm = nn.functional.normalize(emb2, p=2, dim=1)
         
         # Compute loss
-        loss = criterion(emb1, emb2, label)
+        loss = criterion(emb1_norm, emb2_norm, label)
         
         # Backward
         optimizer.zero_grad()
@@ -143,11 +149,20 @@ def train_epoch(model, dataloader, criterion, optimizer, device):
         # Statistics
         total_loss += loss.item()
         
-        # Accuracy (based on distance threshold)
-        distance = torch.nn.functional.pairwise_distance(emb1, emb2)
-        predicted = (distance < 0.5).float()  # Threshold = 0.5
-        correct += (predicted == label).sum().item()
-        total += label.size(0)
+        # Accuracy using cosine similarity with threshold
+        # Use detached embeddings for accuracy (no gradient, stable computation)
+        with torch.no_grad():
+            # Re-compute in eval mode for accurate metric
+            model.eval()
+            emb1_eval = model(img1)
+            emb2_eval = model(img2)
+            emb1_eval = nn.functional.normalize(emb1_eval, p=2, dim=1)
+            emb2_eval = nn.functional.normalize(emb2_eval, p=2, dim=1)
+            similarity = torch.sum(emb1_eval * emb2_eval, dim=1)
+            predicted = (similarity > threshold).float()
+            correct += (predicted == label).sum().item()
+            total += label.size(0)
+            model.train()  # Switch back to train mode
         
         # Update progress bar
         pbar.set_postfix({
@@ -161,7 +176,7 @@ def train_epoch(model, dataloader, criterion, optimizer, device):
     return avg_loss, accuracy
 
 
-def validate(model, dataloader, criterion, device):
+def validate(model, dataloader, criterion, device, threshold):
     """Validate model."""
     model.eval()
     
@@ -190,7 +205,7 @@ def validate(model, dataloader, criterion, device):
             # Accuracy using cosine similarity
             # For normalized embeddings, cosine similarity = dot product
             similarity = torch.sum(emb1 * emb2, dim=1)
-            predicted = (similarity > 0.4).float()
+            predicted = (similarity > threshold).float()
             correct += (predicted == label).sum().item()
             total += label.size(0)
     
@@ -217,8 +232,10 @@ def main():
                         help='Batch size')
     parser.add_argument('--lr', type=float, default=0.0001,
                         help='Learning rate')
-    parser.add_argument('--margin', type=float, default=1.0,
+    parser.add_argument('--margin', type=float, default=0.4,
                         help='Contrastive loss margin')
+    parser.add_argument('--seed', type=int, default=42,
+                        help='Random seed for reproducibility')
     parser.add_argument('--val_split', type=float, default=0.2,
                         help='Validation split ratio')
     parser.add_argument('--force_cpu', action='store_true',
@@ -229,6 +246,14 @@ def main():
     # Device
     device = 'cpu' if args.force_cpu else ('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
+
+    # Reproducibility
+    import random
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
+    if device == 'cuda':
+        torch.cuda.manual_seed_all(args.seed)
     
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
@@ -249,8 +274,9 @@ def main():
     val_size = int(len(full_dataset) * args.val_split)
     train_size = len(full_dataset) - val_size
     
+    split_gen = torch.Generator().manual_seed(args.seed)
     train_dataset, val_dataset = torch.utils.data.random_split(
-        full_dataset, [train_size, val_size]
+        full_dataset, [train_size, val_size], generator=split_gen
     )
     
     print(f"Train size: {len(train_dataset)}")
@@ -324,7 +350,13 @@ def main():
     print(f"Starting Fine-tuning on Feedback Pairs")
     print(f"{'='*70}")
     
-    best_val_acc = 0.0
+    # Run validation BEFORE training to show baseline
+    print("\n[Baseline] Evaluating pretrained model before any training...")
+    model.eval()
+    baseline_loss, baseline_acc = validate(model, val_loader, criterion, device, threshold=args.margin)
+    print(f"[Baseline] Pretrained Val Acc: {baseline_acc:.3f} (should be ~0.98)")
+    
+    best_val_acc = baseline_acc
     
     for epoch in range(args.epochs):
         print(f"\nEpoch {epoch+1}/{args.epochs}")
@@ -332,11 +364,11 @@ def main():
         
         # Train
         train_loss, train_acc = train_epoch(
-            model, train_loader, criterion, optimizer, device
+            model, train_loader, criterion, optimizer, device, threshold=args.margin
         )
         
         # Validate
-        val_loss, val_acc = validate(model, val_loader, criterion, device)
+        val_loss, val_acc = validate(model, val_loader, criterion, device, threshold=args.margin)
         
         # Print results
         print(f"\nResults:")

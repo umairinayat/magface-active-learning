@@ -118,6 +118,16 @@ temp/
 
 __MACOSX/
 
+# Megaface generated outputs
+megaface/feature_out*/
+megaface/classification_output*/
+megaface/error_vis_*/
+megaface/pairs_data/hard_pairs*.json
+megaface/data/*_50k.list
+megaface/data/*_100k.list
+megaface/data/*_150k.list
+megaface/data/facescrub_all.list
+
 # Testing artifacts
 TESTING/
 test_output/
@@ -152,3 +162,5 @@ mag_umair/mag_umair/test_output.txt
 mag_umair/mag_umair/test_small.json
 mag_umair/mag_umair/validation_report.json
 mag_umair/__MACOSX/
+magface_epoch_00025.pth
+checkpoints_feedback_hard_150k/

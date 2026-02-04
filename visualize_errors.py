@@ -29,8 +29,9 @@ class ErrorVisualizer:
     Visualize model errors by saving false prediction image pairs.
     """
     
-    def __init__(self, model_path, device='cpu'):
+    def __init__(self, model_path, device='cpu', features_list=None):
         self.device = device
+        self.feature_cache = None
         
         print(f"Loading model from {model_path}...")
         self.model = iresnet100(num_classes=512)
@@ -83,10 +84,33 @@ class ErrorVisualizer:
             # MagFace expects [0, 1] range, NO mean/std normalization
         ])
         
-        print("✅ Model loaded")
+        # Optional: load precomputed embeddings to speed up pair evaluation
+        if features_list:
+            self.feature_cache = self._load_feature_cache(features_list)
+            print(f"✅ Loaded feature cache with {len(self.feature_cache)} embeddings")
+        else:
+            print("✅ Model loaded")
+
+    def _load_feature_cache(self, features_list):
+        """Load features.list into memory and L2-normalize embeddings."""
+        cache = {}
+        with open(features_list, 'r') as f:
+            for line in f:
+                parts = line.strip().split()
+                if len(parts) < 513:
+                    continue
+                path = parts[0]
+                emb = np.array([float(x) for x in parts[1:]], dtype=np.float32)
+                norm = np.linalg.norm(emb) + 1e-12
+                emb = emb / norm
+                cache[path] = emb
+        return cache
     
     def extract_embedding(self, image_path):
         """Extract normalized embedding from image."""
+        if self.feature_cache is not None and image_path in self.feature_cache:
+            return self.feature_cache[image_path]
+
         img = cv2.imread(image_path)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         img_tensor = self.transform(img).unsqueeze(0).to(self.device)
@@ -101,7 +125,7 @@ class ErrorVisualizer:
         """Compute cosine similarity."""
         return np.dot(emb1, emb2)
     
-    def visualize_errors(self, feedback_file, output_dir='error_visualization', threshold=0.4, use_ground_truth=False):
+    def visualize_errors(self, feedback_file, output_dir='error_visualization', threshold=0.4, use_ground_truth=False, max_fp=None, max_fn=None):
         """
         Identify and save error cases.
         
@@ -198,8 +222,8 @@ class ErrorVisualizer:
         print(f"Saving Error Cases")
         print(f"{'='*70}")
         
-        self._save_pairs(false_positives, fp_dir, "False Positive")
-        self._save_pairs(false_negatives, fn_dir, "False Negative")
+        self._save_pairs(false_positives, fp_dir, "False Positive", limit=max_fp)
+        self._save_pairs(false_negatives, fn_dir, "False Negative", limit=max_fn)
         
         # Save some correct cases for comparison
         print(f"\nSaving sample correct predictions for comparison...")
@@ -324,6 +348,12 @@ def main():
                         help='Output directory for visualizations')
     parser.add_argument('--threshold', type=float, default=0.4,
                         help='Similarity threshold for classification')
+    parser.add_argument('--features_list', type=str, default=None,
+                        help='Optional features.list to speed up evaluation')
+    parser.add_argument('--max_fp', type=int, default=None,
+                        help='Max false positives to save (default: all)')
+    parser.add_argument('--max_fn', type=int, default=None,
+                        help='Max false negatives to save (default: all)')
     parser.add_argument('--force_cpu', action='store_true',
                         help='Force CPU mode')
     
@@ -334,11 +364,13 @@ def main():
     print(f"Using device: {device}")
     
     # Visualize errors
-    visualizer = ErrorVisualizer(args.model, device)
+    visualizer = ErrorVisualizer(args.model, device, features_list=args.features_list)
     summary = visualizer.visualize_errors(
         args.feedback_file,
         args.output_dir,
-        args.threshold
+        args.threshold,
+        max_fp=args.max_fp,
+        max_fn=args.max_fn
     )
     
     print(f"\n{'='*70}")
