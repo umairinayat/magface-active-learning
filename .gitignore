@@ -151,6 +151,7 @@ qdrant_storage/
 
 # Test feedback
 test_feedback/
+MagFace/
 
 # mag_umair fine-tuning artifacts
 mag_umair/mag_umair/checkpoints/
