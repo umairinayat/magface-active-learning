@@ -139,4 +139,16 @@ info.txt
 qdrant_storage/
 .qdrant/
 
+# Test feedback
 test_feedback/
+
+# mag_umair fine-tuning artifacts
+mag_umair/mag_umair/checkpoints/
+mag_umair/mag_umair/checkpoints_new/
+mag_umair/mag_umair/train_pairs.json
+mag_umair/mag_umair/test_pairs.json
+mag_umair/mag_umair/test_pairs_converted.json
+mag_umair/mag_umair/test_output.txt
+mag_umair/mag_umair/test_small.json
+mag_umair/mag_umair/validation_report.json
+mag_umair/__MACOSX/
