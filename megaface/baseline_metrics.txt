@@ -1,0 +1,27 @@
+============================================================
+MAGFACE BASELINE METRICS
+============================================================
+
+VERIFICATION METRICS
+----------------------------------------
+ROC-AUC: 0.995255
+Best Accuracy: 99.5798%
+Best Threshold: 0.307618
+Mean Positive Score: 0.695519
+Mean Negative Score: 0.021600
+Std Positive Score: 0.130833
+Std Negative Score: 0.074945
+
+TAR @ FAR
+----------------------------------------
+TAR@FAR=1e-06: 0.0000%
+TAR@FAR=1e-05: 0.0000%
+TAR@FAR=0.0001: 97.9765%
+TAR@FAR=0.001: 98.3138%
+TAR@FAR=0.01: 98.5337%
+TAR@FAR=0.1: 99.0616%
+
+IDENTIFICATION METRICS
+----------------------------------------
+Rank-1 Accuracy: 99.2918%
+Correct / Total: 3505 / 3530
