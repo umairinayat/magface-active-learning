@@ -116,7 +116,7 @@ ContrastiveLoss = CosineSimilarityLoss
 
 
 def train_epoch(model, dataloader, criterion, optimizer, device, threshold):
-    """Train for one epoch."""
+    """Train for one epoch.""""""  """
     model.train()
     
     total_loss = 0.0
@@ -141,7 +141,7 @@ def train_epoch(model, dataloader, criterion, optimizer, device, threshold):
         # Compute loss
         loss = criterion(emb1_norm, emb2_norm, label)
         
-        # Backward
+        # Backward (disabled for forward-pass-only validation)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -237,7 +237,9 @@ def main():
     parser.add_argument('--seed', type=int, default=42,
                         help='Random seed for reproducibility')
     parser.add_argument('--val_split', type=float, default=0.2,
-                        help='Validation split ratio')
+                        help='Validation split ratio (ignored if --val_file is set)')
+    parser.add_argument('--val_file', type=str, default=None,
+                        help='Optional separate validation pairs JSON')
     parser.add_argument('--force_cpu', action='store_true',
                         help='Force CPU mode')
     
@@ -266,19 +268,24 @@ def main():
         # MagFace expects [0, 1] range, NO mean/std normalization
     ])
     
-    # Load dataset
-    print(f"\nLoading feedback pairs from {args.feedback_file}...")
+    # Load datasets
+    print(f"\nLoading training pairs from {args.feedback_file}...")
     full_dataset = FeedbackPairDataset(args.feedback_file, transform=transform)
-    
-    # Split train/val
-    val_size = int(len(full_dataset) * args.val_split)
-    train_size = len(full_dataset) - val_size
-    
-    split_gen = torch.Generator().manual_seed(args.seed)
-    train_dataset, val_dataset = torch.utils.data.random_split(
-        full_dataset, [train_size, val_size], generator=split_gen
-    )
-    
+
+    if args.val_file:
+        print(f"Loading validation pairs from {args.val_file}...")
+        train_dataset = full_dataset
+        val_dataset = FeedbackPairDataset(args.val_file, transform=transform)
+    else:
+        # Split train/val
+        val_size = int(len(full_dataset) * args.val_split)
+        train_size = len(full_dataset) - val_size
+
+        split_gen = torch.Generator().manual_seed(args.seed)
+        train_dataset, val_dataset = torch.utils.data.random_split(
+            full_dataset, [train_size, val_size], generator=split_gen
+        )
+
     print(f"Train size: {len(train_dataset)}")
     print(f"Val size: {len(val_dataset)}")
     

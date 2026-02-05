@@ -1,0 +1,18 @@
+model:
+  backend: "magface"
+  device: "cuda"
+  magface:
+    weights: "magface_epoch_00025.pth"
+    arch: "iresnet100"
+    embedding_size: 512
+
+matching:
+  similarity_threshold: 0.4
+
+training:
+  learning_rate: 0.00001
+  batch_size: 32
+  epochs: 5
+  margin: 0.4
+  checkpoint_dir: "checkpoints_feedback_pairs"
+

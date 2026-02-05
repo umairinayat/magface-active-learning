@@ -41,6 +41,7 @@ facelib-env/
 # Checkpoints and Models
 checkpoints/
 checkpoints_feedback/
+checkpoints_feedback_pairs/
 models/
 *.pth
 *.pt
@@ -106,6 +107,8 @@ desktop.ini
 tmp/
 temp/
 *.tmp
+config.yaml.bak
+config.yaml.tmp
 
 # Large files
 *.zip
@@ -136,6 +139,7 @@ test_output/
 *.jpeg
 comparison.png
 info.txt
+toy_pairs.json
 
 # Environment files
 .env
@@ -165,3 +169,5 @@ mag_umair/mag_umair/validation_report.json
 mag_umair/__MACOSX/
 magface_epoch_00025.pth
 checkpoints_feedback_hard_150k/
+
+u/

@@ -2,7 +2,7 @@
 
 Active learning system for face recognition using MagFace with user feedback and fine-tuning.
 
-**For detailed technical explanation, see [CONTENT.md](CONTENT.md)**
+**For detailed technical explanation, see [context.md](context.md)**
 
 ---
 
@@ -24,9 +24,11 @@ Active learning system for face recognition using MagFace with user feedback and
 
 Use these commands to run MagFace inference, build hard pairs, visualize errors, and fine-tune:
 ```bash
+# Uses unified root config.yaml for model + training defaults
+
 # 1) Run inference on Megaface + FaceScrub to get embeddings
 # 4) Visualize errors (fast: uses cached embeddings)
-CUDA_VISIBLE_DEVICES=0 python visualize_errors.py \
+CUDA_VISIBLE_DEVICES=0 python inference_with_embedding.py \
   --model magface_epoch_00025.pth \
   --feedback_file megaface/pairs_data/hard_pairs_12k.json \
   --threshold 0.4 \
@@ -76,6 +78,7 @@ conda activate magface
 
 ```
 magface-active-learning/
+├── config.yaml                      # Unified config (model + training defaults)
 ├── magface_epoch_00025.pth          # Pretrained model (270MB)
 ├── megaface/                        # Megaface + FaceScrub data + outputs
 │   ├── data/
@@ -87,12 +90,16 @@ magface-active-learning/
 │   └── error_vis*/                  # Visualizations
 ├── checkpoints_feedback*/           # Fine-tuned models
 ├── create_test_feedback.py          # CASIA toy dataset generator
-├── visualize_errors.py              # Run inference & visualize
+├── inference_with_embedding.py      # Run inference & visualize
 ├── finetune_on_feedback.py          # Fine-tune model
+├── img_embedding.py                 # Single-image embedding + fine-tune from pairs
+├── eval_function_pairs.py           # Evaluate on labeled pairs (config-driven)
+├── run_img_embedding.py             # CLI for embedding + fine-tune
+├── finetune_and_update_config.py    # Update config.yaml with a new checkpoint
 ├── evaluate_finetuned_model.py      # Evaluation script
 ├── environment.yml                  # Conda environment
 ├── README.md                        # This file
-└── CONTENT.md                       # Technical documentation
+└── context.md                       # Technical documentation
 ```
 
 ---
@@ -116,6 +123,17 @@ magface-active-learning/
 ---
 
 ## 📖 How to Run
+
+### 0. Unified Config (Recommended)
+
+All new scripts read from the root `config.yaml` by default:
+
+- `model.magface.weights`: model checkpoint path
+- `model.magface.arch`: backbone
+- `matching.similarity_threshold`: inference threshold
+- `training.*`: default fine-tune hyperparameters
+
+After fine-tuning, use `finetune_and_update_config.py` to update the config with the new checkpoint.
 
 ### 1. Generate Test Dataset (CASIA Toy Workflow)
 
@@ -142,7 +160,7 @@ python create_test_feedback.py --dataset faces_webface_112x112
 **Run MagFace on test pairs and save error visualizations:**
 
 ```bash
-python visualize_errors.py \
+python inference_with_embedding.py \
     --model magface_epoch_00025.pth \
     --feedback_file test_feedback/feedback_pairs_test.json \
     --threshold 0.4 \
@@ -203,7 +221,7 @@ python finetune_on_feedback.py \
 **Test the fine-tuned model on same test pairs:**
 
 ```bash
-python visualize_errors.py \
+python inference_with_embedding.py \
     --model checkpoints_feedback/magface_feedback_best.pth \
     --feedback_file test_feedback/feedback_pairs_test.json \
     --threshold 0.4 \
@@ -215,6 +233,45 @@ python visualize_errors.py \
 - Check `magface_errors/` (pretrained) vs `finetuned_errors/` (fine-tuned)
 - Look at `error_summary.json` in each folder
 - See if false positives/negatives decreased
+
+---
+
+## 🧪 New Utilities (Pairs + Config)
+
+### A) Single Image Embedding (uses config.yaml)
+
+```bash
+./venv/bin/python run_img_embedding.py embed \
+  --image MagFace_repo/inference/toy_imgs/0.jpg
+```
+
+### B) Fine-tune from Labeled Pairs (updates best checkpoint only)
+
+```bash
+./venv/bin/python run_img_embedding.py finetune \
+  --pairs_file toy_pairs.json \
+  --output_dir checkpoints_feedback_pairs
+```
+
+### C) Update Config with a New Checkpoint
+
+```bash
+./venv/bin/python finetune_and_update_config.py \
+  --weights checkpoints_feedback_pairs/magface_feedback_best.pth
+```
+
+### D) Evaluate Pairs with Latest Model from Config
+
+```bash
+./venv/bin/python - <<'PY'
+import json
+from eval_function_pairs import eval_function
+
+pairs = json.load(open("toy_pairs.json"))["pairs"]
+metrics = eval_function(pairs)
+print(metrics)
+PY
+```
 
 ---
 
@@ -287,8 +344,8 @@ python visualize_errors.py \
 
 - **MagFace Paper:** [MagFace: A Universal Representation for Face Recognition and Quality Assessment](https://arxiv.org/abs/2103.06627)
 - **CASIA-WebFace Dataset:** 10,575 identities, 494,414 images
-- **Technical Details:** See [CONTENT.md](CONTENT.md) for complete explanation
+- **Technical Details:** See [context.md](context.md) for complete explanation
 
 ---
 
-**For detailed technical documentation, bug fixes, and architecture details, see [CONTENT.md](CONTENT.md)**
+**For detailed technical documentation, bug fixes, and architecture details, see [context.md](context.md)**
